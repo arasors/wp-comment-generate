@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Comment Generator
  * Description: Generate AI-powered comments for WooCommerce products using Gemini API
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: AI Plugin Generator
  * Text Domain: comment-generator
  * Requires at least: 5.0
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 // Define plugin constants
 define('CG_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CG_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('CG_VERSION', '1.0.1');
+define('CG_VERSION', '1.0.2');
 
 // Check if WooCommerce is active
 function cg_is_woocommerce_active() {
