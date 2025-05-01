@@ -356,11 +356,7 @@
                 
                 var $commentItem = $(
                     '<div class="cg-comment-item" data-index="' + index + '" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
-                        '<div class="cg-comment-actions">' +
-                            '<button type="button" class="cg-regenerate-comment-btn" title="' + cg_data.regenerate_comment_text + '">' +
-                                '<span class="dashicons dashicons-update"></span>' +
-                            '</button>' +
-                        '</div>' +
+                        
                         '<div class="cg-comment-header">' +
                             '<div class="cg-comment-author">' + escapeHtml(comment.name) + '</div>' +
                             '<div class="cg-comment-rating">' + stars + '</div>' +
@@ -491,11 +487,6 @@
                                     '<div class="cg-comment-header-inner">' +
                                         '<div class="cg-comment-author">' + escapeHtml(comment.name) + '</div>' +
                                         '<div class="cg-comment-rating">' + stars + '</div>' +
-                                    '</div>' +
-                                    '<div class="cg-comment-actions">' +
-                                        '<button type="button" class="cg-regenerate-comment-btn" title="' + cg_data.regenerate_comment_text + '">' +
-                                            '<span class="dashicons dashicons-update"></span> Yenile' +
-                                        '</button>' +
                                     '</div>' +
                                 '</div>' +
                                 '<div class="cg-comment-body">' +

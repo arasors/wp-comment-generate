@@ -304,9 +304,7 @@ $default_models = array(
                     </div>
                     <div class="cg-modal-footer">
                         <div class="cg-modal-actions">
-                            <button type="button" class="button button-secondary cg-regenerate-btn">
-                                <span class="dashicons dashicons-update"></span> <?php _e('Regenerate', 'comment-generator'); ?>
-                            </button>
+                            
                             <button type="button" class="button button-primary cg-save-btn">
                                 <span class="dashicons dashicons-yes"></span> <?php _e('Save Selected Comments', 'comment-generator'); ?>
                             </button>
