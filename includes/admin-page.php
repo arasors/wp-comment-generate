@@ -32,10 +32,11 @@ $languages = array(
 
 // Default Gemini models
 $default_models = array(
-    'gemini-1.5-flash' => __('Gemini 1.5 Flash', 'comment-generator'),
-    'gemini-1.5-pro' => __('Gemini 1.5 Pro', 'comment-generator'),
-    'gemini-2.5-flash' => __('Gemini 2.5 Flash', 'comment-generator'),
-    'gemini-2.5-pro' => __('Gemini 2.5 Pro', 'comment-generator')
+    'gemini-2.0-flash-001' => __('Gemini 2.5 Flash', 'comment-generator'),
+    'gemini-2.5-pro-preview-03-25' => __('Gemini 2.5 Pro', 'comment-generator'),
+    'gemini-2.0-pro-exp-02-05' => __('Gemini 2.5 Pro Exp', 'comment-generator'),
+    'gemini-1.5-flash-8b-exp-0827' => __('Gemini 1.5 Flash Exp', 'comment-generator'),
+    'gemini-2.0-flash-thinking-exp-1219' => __('Gemini 2.0 Flash Thinking Exp', 'comment-generator'),
 );
 ?>
 
@@ -64,6 +65,9 @@ $default_models = array(
                     
                     <div class="cg-form-row">
                         <label for="cg_gemini_model"><?php _e('Gemini Model', 'comment-generator'); ?></label>
+                        <p class="description">
+                            <?php _e('Select the Gemini model to use for generating comments, you can get it from <a href="https://ai.google.dev/gemini-api/docs/models?hl=tr#model-variations" target="_blank">Google AI Studio</a>.', 'comment-generator'); ?>
+                        </p>
                         <select id="cg_gemini_model" name="cg_gemini_model" class="regular-text">
                             <?php foreach ($default_models as $model_id => $model_name) : ?>
                                 <option value="<?php echo esc_attr($model_id); ?>" <?php selected($gemini_model, $model_id); ?>><?php echo esc_html($model_name); ?></option>
