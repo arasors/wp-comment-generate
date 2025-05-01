@@ -143,6 +143,13 @@
     flex: 0 0 auto;
 }
 
+.cg-product-actions .button,
+.cg-modal-actions .button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 #cg-add-model {
     margin-bottom: 8px;
 }

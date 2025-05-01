@@ -203,6 +203,24 @@ class CG_Gemini_API {
             }
         }
         
+        // Pattern 4: Markdown-style reviews with bold headers (for newer Gemini API responses)
+        if (empty($comments) && preg_match_all('/\d+\.\s+\*\*(?:Customer\s+Name|Name):\*\*\s+([^\n]+)\n\s+\*\*(?:Star\s+Rating|Rating):\*\*\s+(\d+)[^\n]*\n\s+\*\*(?:Comment|Review):\*\*\s+(?:")?([^"]+)(?:")?/is', $response, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $name = trim($match[1]);
+                $rating = min(5, max(1, intval($match[2])));
+                $comment = trim($match[3]);
+                
+                if (!empty($name) && !empty($comment)) {
+                    $comments[] = array(
+                        'name' => $name,
+                        'rating' => $rating,
+                        'comment' => $comment,
+                        'selected' => true,
+                    );
+                }
+            }
+        }
+        
         // If all parsing attempts failed, create a more generic error with debug info
         if (empty($comments)) {
             $error = new WP_Error(
