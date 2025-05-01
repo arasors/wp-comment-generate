@@ -15,22 +15,18 @@ class CG_Gemini_API {
         $product_name = $product->get_name();
         $product_description = $product->get_description() ?: $product->get_short_description();
         
-        // Get the default prompt and replace placeholders
-        $default_prompt = get_option('cg_default_prompt', '');
-        $prompt = str_replace(
-            array('{product_name}', '{product_description}'),
-            array($product_name, $product_description),
-            $default_prompt
-        );
+        // Get min/max rating settings
+        $min_rating = get_option('cg_min_rating', 4);
+        $max_rating = get_option('cg_max_rating', 5);
         
-        // Additional prompt from the request
-        $additional_prompt = isset($_POST['additional_prompt']) ? sanitize_textarea_field($_POST['additional_prompt']) : '';
-        
-        if (!empty($additional_prompt)) {
-            $prompt .= "\n\nAdditional instructions: " . $additional_prompt;
+        // Make sure min is not greater than max
+        if ($min_rating > $max_rating) {
+            $temp = $min_rating;
+            $min_rating = $max_rating;
+            $max_rating = $temp;
         }
         
-        // Get language setting and add it to prompt if not English
+        // Get language setting
         $comment_language = get_option('cg_comment_language', 'en');
         $languages = array(
             'en' => 'English',
@@ -47,37 +43,41 @@ class CG_Gemini_API {
             'ar' => 'Arabic',
         );
         
-        if ($comment_language != 'en' && isset($languages[$comment_language])) {
-            $prompt .= "\n\nPlease write the comments in " . $languages[$comment_language] . " language.";
-        }
+        $language_name = isset($languages[$comment_language]) ? $languages[$comment_language] : 'English';
         
-        // Get min/max rating settings
-        $min_rating = get_option('cg_min_rating', 4);
-        $max_rating = get_option('cg_max_rating', 5);
-        
-        // Make sure min is not greater than max
-        if ($min_rating > $max_rating) {
-            $temp = $min_rating;
-            $min_rating = $max_rating;
-            $max_rating = $temp;
-        }
-        
-        // Add rating range to prompt
-        $prompt = str_replace(
-            'between 4-5 stars',
-            'between ' . $min_rating . '-' . $max_rating . ' stars',
-            $prompt
+        // Build a JSON-friendly prompt
+        $json_prompt = sprintf(
+            "Ürün adı: \"%s\". Ürün açıklaması: \"%s\". " .
+            "5 ile 8 arası yorum üretin. " .
+            "Yorumlar %s dilinde yazılmalıdır." .
+            "Yanıt MUST valid JSON format ONLY, with this structure: { \"reviews\": [ { \"name\": \"Customer Name\", \"rating\": 5, \"comment\": \"Review text here\" }, ... ] }. " .
+            "Gerçek müşteri isimleri, %s diline uygun olarak sağlanmalıdır. " .
+            "Yanıt JSON yapısı dışında herhangi bir metin içermemelidir. " .
+            "Yorumlar gerçekçi ve stil ve uzunluk açısından değişken olmalıdır.",
+            $product_name,
+            $product_description,
+            $min_rating,
+            $max_rating,
+            $language_name,
+            $language_name
         );
         
+        // Additional prompt from the request
+        $additional_prompt = isset($_POST['additional_prompt']) ? sanitize_textarea_field($_POST['additional_prompt']) : '';
+        
+        if (!empty($additional_prompt)) {
+            $json_prompt .= " Ekstra talimatlar: " . $additional_prompt;
+        }
+        
         // Make the API request
-        $response = $this->make_api_request($prompt);
+        $response = $this->make_api_request($json_prompt);
         
         if (is_wp_error($response)) {
             return $response;
         }
         
-        // Parse the response to extract comments
-        return $this->parse_comments_from_response($response, $product_name, $min_rating, $max_rating);
+        // Try to parse the response as JSON
+        return $this->parse_json_response($response, $product_name, $min_rating, $max_rating);
     }
     
     private function make_api_request($prompt) {
@@ -142,6 +142,70 @@ class CG_Gemini_API {
         }
         
         return $data['candidates'][0]['content']['parts'][0]['text'];
+    }
+    
+    private function parse_json_response($response, $product_name, $min_rating = 4, $max_rating = 5) {
+        // Try to find and extract JSON from the response
+        $json_pattern = '/(\{.*\})/s';
+        if (preg_match($json_pattern, $response, $matches)) {
+            $json_string = $matches[0];
+        } else {
+            $json_string = $response; // Try to parse the entire response as JSON
+        }
+        
+        // Try to decode the JSON
+        $data = json_decode($json_string, true);
+        
+        // Check if we have valid JSON with reviews array
+        if (json_last_error() === JSON_ERROR_NONE && !empty($data) && isset($data['reviews']) && is_array($data['reviews'])) {
+            $comments = array();
+            
+            foreach ($data['reviews'] as $review) {
+                // Validate required fields
+                if (isset($review['name'], $review['rating'], $review['comment']) && 
+                    !empty($review['name']) && !empty($review['comment'])) {
+                    
+                    // Ensure rating is within min-max range
+                    $rating = intval($review['rating']);
+                    $rating = min(5, max(1, $rating));
+                    
+                    if ($rating < $min_rating) {
+                        $rating = $min_rating;
+                    } elseif ($rating > $max_rating) {
+                        $rating = $max_rating;
+                    }
+                    
+                    $comments[] = array(
+                        'name' => $review['name'],
+                        'rating' => $rating,
+                        'comment' => $review['comment'],
+                        'selected' => true,
+                    );
+                }
+            }
+            
+            // If we have valid comments, return them
+            if (!empty($comments)) {
+                // Limit to 8 comments maximum
+                $comments = array_slice($comments, 0, 8);
+                return $comments;
+            }
+        }
+        
+        // If JSON parsing failed, try legacy regex-based parsing
+        $comments = $this->parse_comments_from_response($response, $product_name, $min_rating, $max_rating);
+        
+        // If regex parsing returned an error, include JSON parsing error in the debug info
+        if (is_wp_error($comments)) {
+            $debug_data = $comments->get_error_data();
+            if (is_array($debug_data)) {
+                $debug_data['json_error'] = json_last_error_msg();
+                $debug_data['attempted_json'] = $json_string;
+                $comments->add_data($debug_data);
+            }
+        }
+        
+        return $comments;
     }
     
     private function parse_comments_from_response($response, $product_name, $min_rating = 4, $max_rating = 5) {
