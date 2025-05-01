@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Comment Generator
  * Description: Generate AI-powered comments for WooCommerce products using Gemini API
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: AI Plugin Generator
  * Text Domain: comment-generator
  * Requires at least: 5.0
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 // Define plugin constants
 define('CG_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CG_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('CG_VERSION', '1.0.0');
+define('CG_VERSION', '1.0.1');
 
 // Check if WooCommerce is active
 function cg_is_woocommerce_active() {
@@ -166,8 +166,11 @@ class Comment_Generator {
             return;
         }
         
-        wp_enqueue_style('cg-admin-css', CG_PLUGIN_URL . 'assets/css/admin.css', array(), CG_VERSION);
-        wp_enqueue_script('cg-admin-js', CG_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), CG_VERSION, true);
+        // Rastgele bir değer ekleyerek önbelleği temizle
+        $cache_buster = '&ver=' . CG_VERSION . '.' . mt_rand(10, 99);
+        
+        wp_enqueue_style('cg-admin-css', CG_PLUGIN_URL . 'assets/css/admin.css' . $cache_buster, array(), null);
+        wp_enqueue_script('cg-admin-js', CG_PLUGIN_URL . 'assets/js/admin.js' . $cache_buster, array('jquery'), null, true);
         
         wp_localize_script('cg-admin-js', 'cg_data', array(
             'ajax_url' => admin_url('admin-ajax.php'),
