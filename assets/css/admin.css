@@ -502,4 +502,43 @@
     font-size: 12px;
     background-color: #fff;
     resize: vertical;
+}
+
+/* Add styles for auto-response settings */
+.cg-auto-response-enabled {
+    background-color: #e7f7e8;
+    border-left: 4px solid #46b450;
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 2px;
+}
+
+.cg-auto-response-enabled strong {
+    color: #46b450;
+}
+
+/* Auto-response styles */
+.cg-auto-response {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #f8f8f8;
+    border-left: 3px solid #007cba;
+    font-size: 0.9em;
+}
+
+.cg-response-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #007cba;
+    display: flex;
+    align-items: center;
+}
+
+.cg-response-label .dashicons {
+    margin-right: 5px;
+}
+
+.cg-response-text {
+    font-style: italic;
+    color: #555;
 } 

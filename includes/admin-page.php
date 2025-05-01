@@ -32,9 +32,10 @@ $languages = array(
 
 // Default Gemini models
 $default_models = array(
-    'gemini-pro' => __('Gemini Pro', 'comment-generator'),
-    'gemini-pro-vision' => __('Gemini Pro Vision', 'comment-generator'),
-    'gemini-ultra' => __('Gemini Ultra (if available)', 'comment-generator'),
+    'gemini-1.5-flash' => __('Gemini 1.5 Flash', 'comment-generator'),
+    'gemini-1.5-pro' => __('Gemini 1.5 Pro', 'comment-generator'),
+    'gemini-2.5-flash' => __('Gemini 2.5 Flash', 'comment-generator'),
+    'gemini-2.5-pro' => __('Gemini 2.5 Pro', 'comment-generator')
 );
 ?>
 
@@ -164,6 +165,26 @@ $default_models = array(
                         <textarea id="cg_default_names" name="cg_default_names" rows="6" class="large-text"><?php echo esc_textarea($default_names); ?></textarea>
                         <p class="description">
                             <?php _e('Enter one name per line. These names will be used when generating comments if the AI doesn\'t provide names.', 'comment-generator'); ?>
+                        </p>
+                    </div>
+                    
+                    <h3><?php _e('Auto-Response Settings', 'comment-generator'); ?></h3>
+                    
+                    <div class="cg-form-row">
+                        <label>
+                            <input type="checkbox" id="cg_enable_auto_response" name="cg_enable_auto_response" value="1" <?php checked(get_option('cg_enable_auto_response', ''), 1); ?> />
+                            <?php _e('Enable auto-responses to generated comments', 'comment-generator'); ?>
+                        </label>
+                        <p class="description">
+                            <?php _e('When enabled, the plugin will automatically add a response to each generated comment.', 'comment-generator'); ?>
+                        </p>
+                    </div>
+                    
+                    <div class="cg-form-row">
+                        <label for="cg_auto_response_text"><?php _e('Auto-Response Text', 'comment-generator'); ?></label>
+                        <textarea id="cg_auto_response_text" name="cg_auto_response_text" rows="4" class="large-text"><?php echo esc_textarea(get_option('cg_auto_response_text', __('Thank you for your feedback! We appreciate your support and are glad you enjoyed our product.', 'comment-generator'))); ?></textarea>
+                        <p class="description">
+                            <?php _e('Enter the text that will be used as a response to generated comments.', 'comment-generator'); ?>
                         </p>
                     </div>
                     

@@ -10,7 +10,7 @@
         $('.cg-tab-link').on('click', function(e) {
             e.preventDefault();
             
-            var tabId = $(this).data('tab') + '-tab';
+            var tabId = $(this).data('tab');
             
             // Update active tab
             $('.cg-tab-link').removeClass('active');
@@ -18,8 +18,33 @@
             
             // Show the selected tab content
             $('.cg-tab-content').removeClass('active');
-            $('#' + tabId).addClass('active');
+            $('#' + tabId + '-tab').addClass('active');
         });
+        
+        // Auto-response setting visibility
+        function toggleAutoResponseFields() {
+            if ($('#cg_enable_auto_response').is(':checked')) {
+                $('#cg_auto_response_text').closest('.cg-form-row').show();
+                
+                // Add visual indicator to the products tab
+                if ($('.cg-auto-response-enabled').length === 0) {
+                    $('#products-tab .cg-card:first').prepend(
+                        '<div class="cg-auto-response-enabled">' +
+                        '<strong>' + 'Auto-response is enabled' + '</strong>: ' + 
+                        'All generated comments will receive an automatic reply.' +
+                        '</div>'
+                    );
+                }
+            } else {
+                $('#cg_auto_response_text').closest('.cg-form-row').hide();
+                $('.cg-auto-response-enabled').remove();
+            }
+        }
+        
+        $('#cg_enable_auto_response').on('change', toggleAutoResponseFields);
+        
+        // Call on page load to set initial state
+        toggleAutoResponseFields();
         
         // Handle adding custom model
         $('#cg-add-model').on('click', function() {
@@ -387,6 +412,44 @@
             };
             
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Function to add a comment to the list
+        function addCommentToList(comment, productId) {
+            var stars = '';
+            for (var i = 1; i <= 5; i++) {
+                if (i <= comment.rating) {
+                    stars += '<span class="dashicons dashicons-star-filled"></span>';
+                } else {
+                    stars += '<span class="dashicons dashicons-star-empty"></span>';
+                }
+            }
+            
+            var commentHtml = '<div class="cg-comment-item">' +
+                            '<div class="cg-comment-header">' +
+                            '<input type="checkbox" class="cg-comment-checkbox" checked>' +
+                            '<span class="cg-comment-author">' + comment.name + '</span>' +
+                            '<div class="cg-comment-rating" data-rating="' + comment.rating + '">' + stars + '</div>' +
+                            '<button type="button" class="cg-regenerate-single-btn" title="' + cg_data.regenerate_comment_text + '">' +
+                            '<span class="dashicons dashicons-update"></span>' +
+                            '</button>' +
+                            '</div>' +
+                            '<div class="cg-comment-body">' +
+                            '<div class="cg-comment-text">' + comment.comment + '</div>' +
+                            '</div>' +
+                            '</div>';
+                            
+            $('.cg-comments-list').append(commentHtml);
+            
+            // Add auto-response info if enabled
+            if ($('#cg_enable_auto_response').is(':checked')) {
+                var responseText = $('#cg_auto_response_text').val();
+                var responseHtml = '<div class="cg-auto-response">' +
+                                 '<div class="cg-response-label"><span class="dashicons dashicons-admin-comments"></span> Auto-response:</div>' +
+                                 '<div class="cg-response-text">' + responseText + '</div>' +
+                                 '</div>';
+                $('.cg-comments-list .cg-comment-item:last .cg-comment-body').append(responseHtml);
+            }
         }
     });
     

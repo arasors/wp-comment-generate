@@ -106,6 +106,16 @@ class Comment_Generator {
             'sanitize_callback' => 'sanitize_textarea_field',
         ));
         
+        // Auto-response settings
+        register_setting('cg_settings', 'cg_enable_auto_response', array(
+            'default' => '',
+            'sanitize_callback' => 'absint',
+        ));
+        register_setting('cg_settings', 'cg_auto_response_text', array(
+            'default' => __('Thank you for your feedback! We appreciate your support and are glad you enjoyed our product.', 'comment-generator'),
+            'sanitize_callback' => 'sanitize_textarea_field',
+        ));
+        
         // Model settings
         register_setting('cg_settings', 'cg_max_tokens', array(
             'default' => 2048,

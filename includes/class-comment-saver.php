@@ -75,6 +75,29 @@ class CG_Comment_Saver {
             return new WP_Error('comment_insert_failed', __('Failed to insert comment.', 'comment-generator'));
         }
         
+        // Add auto-response if enabled
+        $enable_auto_response = get_option('cg_enable_auto_response', '');
+        if ($enable_auto_response) {
+            $auto_response_text = get_option('cg_auto_response_text', __('Thank you for your feedback! We appreciate your support and are glad you enjoyed our product.', 'comment-generator'));
+            
+            if (!empty($auto_response_text)) {
+                $response_data = array(
+                    'comment_post_ID' => $product_id,
+                    'comment_author' => get_bloginfo('name'),
+                    'comment_author_email' => get_bloginfo('admin_email'),
+                    'comment_author_url' => get_bloginfo('url'),
+                    'comment_content' => $auto_response_text,
+                    'comment_type' => 'comment',
+                    'comment_parent' => $comment_id,
+                    'user_id' => 0, // Using 0 for store admin
+                    'comment_date' => current_time('mysql'),
+                    'comment_approved' => 1,
+                );
+                
+                wp_insert_comment($response_data);
+            }
+        }
+        
         return $comment_id;
     }
     
