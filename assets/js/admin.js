@@ -83,24 +83,41 @@
             }
         });
         
-        // Open modal and generate comments
-        $('.cg-products-table').on('click', '.cg-generate-btn', function() {
-            var $row = $(this).closest('tr');
-            currentProductId = $row.data('product-id');
-            var productName = $row.find('.cg-product-name strong').text();
+        // Generate comments button click
+        $('.cg-generate-btn').on('click', function() {
+            var productRow = $(this).closest('tr');
+            var productId = productRow.data('product-id');
+            currentProductId = productId;
+            var productName = productRow.find('.cg-product-name strong').text();
+            var hasExistingComments = productRow.find('.cg-existing-comments').length > 0;
             
             // Set product name in modal
             $('#cg-modal-product-name').text(productName);
             
-            // Clear previous comments
-            $('.cg-comments-list').empty();
-            $('#cg-custom-prompt').val('');
+            // Eğer üründe mevcut yorumlar varsa, bilgi kutusu ekle
+            if (hasExistingComments) {
+                var commentCount = productRow.find('.cg-comment-badge').text().trim();
+                var warningHtml = '<div class="cg-info-box cg-warning-box">' +
+                                 '<span class="dashicons dashicons-warning"></span>' +
+                                 '<p><strong>Dikkat:</strong> Bu ürün şu anda ' + commentCount + ' sahip. Yeni yorumlar eklemek, toplam yorum sayısını artıracaktır.</p>' +
+                                 '</div>';
+                
+                // Mevcut uyarı mesajı varsa kaldır ve yenisini ekle
+                $('.cg-warning-box').remove();
+                $('.cg-edit-instructions').append(warningHtml);
+            } else {
+                // Ürünün yorumu yoksa, uyarı mesajını kaldır
+                $('.cg-warning-box').remove();
+            }
             
-            // Show modal
+            // Open modal
             $('#cg-comments-modal').show();
             
+            // Clear existing comments
+            $('.cg-comments-list').empty();
+            
             // Generate comments
-            generateComments();
+            generateComments(productId);
         });
         
         // Close modal
@@ -122,7 +139,12 @@
         
         // Save selected comments
         $('.cg-save-btn').on('click', function() {
-            saveComments();
+            if (!currentProductId) {
+                alert('Ürün ID bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+                return;
+            }
+            
+            saveComments(currentProductId);
         });
         
         // Handle single comment regeneration
@@ -167,8 +189,8 @@
         });
         
         // Generate comments function
-        function generateComments() {
-            if (!currentProductId) {
+        function generateComments(productId) {
+            if (!productId) {
                 return;
             }
             
@@ -186,7 +208,7 @@
                 data: {
                     action: 'cg_generate_comments',
                     nonce: cg_data.nonce,
-                    product_id: currentProductId,
+                    product_id: productId,
                     additional_prompt: additionalPrompt
                 },
                 success: function(response) {
@@ -215,11 +237,7 @@
         }
         
         // Save comments function
-        function saveComments() {
-            if (!currentProductId) {
-                return;
-            }
-            
+        function saveComments(productId) {
             // Collect selected comments
             var selectedComments = [];
             
@@ -238,7 +256,7 @@
             });
             
             if (selectedComments.length === 0) {
-                showError('Please select at least one comment to save.');
+                showError('Lütfen kaydedilecek en az bir yorum seçin.');
                 return;
             }
             
@@ -255,7 +273,7 @@
                 data: {
                     action: 'cg_save_comments',
                     nonce: cg_data.nonce,
-                    product_id: currentProductId,
+                    product_id: productId,
                     comments: selectedComments
                 },
                 success: function(response) {
@@ -271,6 +289,32 @@
                             '</p></div>'
                         );
                         
+                        // Ürün satırındaki yorum sayısını güncelle
+                        var $productRow = $('.cg-products-table tr[data-product-id="' + productId + '"]');
+                        var existingComments = $productRow.find('.cg-existing-comments');
+                        
+                        // Yeni yorum sayısını hesapla
+                        var newCommentCount = selectedComments.length;
+                        if (existingComments.length > 0) {
+                            // Var olan yorumlar üzerine ekleme yapılacak, göstergeyi güncelle
+                            var commentText = existingComments.find('.cg-comment-badge').text().trim();
+                            var oldCount = parseInt(commentText);
+                            if (!isNaN(oldCount)) {
+                                newCommentCount += oldCount;
+                            }
+                            existingComments.find('.cg-comment-badge').html('<span class="dashicons dashicons-admin-comments"></span> ' + newCommentCount + ' yorum');
+                        } else {
+                            // Yeni yorum göstergesi ekle
+                            $productRow.find('.cg-product-name').append(
+                                '<div class="cg-existing-comments">' +
+                                '<span class="cg-comment-badge">' +
+                                '<span class="dashicons dashicons-admin-comments"></span> ' +
+                                newCommentCount + ' yorum' +
+                                '</span>' +
+                                '</div>'
+                            );
+                        }
+                        
                         // Close modal after a delay
                         setTimeout(function() {
                             $('#cg-comments-modal').hide();
@@ -284,7 +328,7 @@
                     $saveBtn.html(originalText);
                     $saveBtn.prop('disabled', false);
                     
-                    showError('An error occurred while connecting to the server.');
+                    showError('Sunucuya bağlanırken bir hata oluştu.');
                 }
             });
         }

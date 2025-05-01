@@ -632,4 +632,63 @@
 
 .cg-comment-rating .dashicons {
     cursor: pointer;
+}
+
+/* Existing Comments Badge */
+.cg-existing-comments {
+    margin-top: 6px;
+}
+
+.cg-comment-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f0f6fc;
+    color: #2271b1;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid #c5d9ed;
+}
+
+.cg-comment-badge .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+}
+
+/* Info Box */
+.cg-info-box {
+    display: flex;
+    align-items: flex-start;
+    background-color: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    padding: 12px 15px;
+    margin: 10px 0 15px;
+    border-radius: 2px;
+}
+
+.cg-info-box .dashicons {
+    color: #2271b1;
+    font-size: 20px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.cg-info-box p {
+    margin: 0;
+    color: #333;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Warning Box */
+.cg-warning-box {
+    background-color: #fcf9e8;
+    border-left-color: #f0c33c;
+}
+
+.cg-warning-box .dashicons {
+    color: #f0c33c;
 } 

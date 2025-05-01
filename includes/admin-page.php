@@ -238,6 +238,26 @@ $default_models = array(
                                 <td class="cg-product-name">
                                     <strong><?php echo esc_html($product->get_name()); ?></strong>
                                     <span class="cg-product-sku"><?php _e('SKU:', 'comment-generator'); ?> <?php echo $product->get_sku() ? esc_html($product->get_sku()) : __('N/A', 'comment-generator'); ?></span>
+                                    
+                                    <?php 
+                                    // Daha önce eklenen yorumları kontrol et
+                                    $review_count = get_comments(array(
+                                        'post_id' => $product->get_id(),
+                                        'count' => true,
+                                        'status' => 'approve',
+                                        'type' => 'review'
+                                    ));
+                                    
+                                    if ($review_count > 0) : 
+                                        $review_text = sprintf(_n('%d yorum', '%d yorum', $review_count, 'comment-generator'), $review_count);
+                                    ?>
+                                    <div class="cg-existing-comments">
+                                        <span class="cg-comment-badge">
+                                            <span class="dashicons dashicons-admin-comments"></span>
+                                            <?php echo esc_html($review_text); ?>
+                                        </span>
+                                    </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="cg-product-actions">
                                     <button type="button" class="button cg-generate-btn" <?php echo empty($api_key) ? 'disabled' : ''; ?>>
@@ -261,6 +281,12 @@ $default_models = array(
                     <div class="cg-modal-body">
                         <div class="cg-product-info">
                             <h3 id="cg-modal-product-name"></h3>
+                            <div class="cg-edit-instructions">
+                                <div class="cg-info-box">
+                                    <span class="dashicons dashicons-info"></span>
+                                    <p><?php _e('Yorumları kaydetmeden önce düzenleyebilirsiniz. Her yorumun üst kısmındaki düzenle butonuna tıklayarak yorumu, ismi ve derecelendirmeyi değiştirebilirsiniz.', 'comment-generator'); ?></p>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="cg-comments-list"></div>
