@@ -630,6 +630,176 @@
                 $commentItem.css('background-color', '');
             }, 50);
         });
+        
+        // Edit Review button click
+        $(document).on('click', '.cg-edit-review-btn', function() {
+            var reviewId = $(this).data('review-id');
+            var $reviewRow = $('tr[data-review-id="' + reviewId + '"]');
+            
+            // Get review data from the row
+            var author = $reviewRow.find('.cg-review-author').text().trim();
+            var reviewText = $reviewRow.find('.cg-review-text').text().trim();
+            var ratingStars = $reviewRow.find('.cg-review-rating .dashicons-star-filled').length;
+            
+            // Populate the modal form
+            $('#cg-review-id').val(reviewId);
+            $('#cg-review-author').val(author);
+            $('#cg-review-text').val(reviewText);
+            $('#cg-review-rating').val(ratingStars);
+            
+            // Set rating stars
+            updateRatingStars(ratingStars);
+            
+            // Show the modal
+            $('#cg-edit-review-modal').show();
+        });
+        
+        // Rating stars click
+        $(document).on('click', '.cg-star-select', function() {
+            var rating = $(this).data('rating');
+            $('#cg-review-rating').val(rating);
+            updateRatingStars(rating);
+        });
+        
+        // Update rating stars based on selected rating
+        function updateRatingStars(rating) {
+            $('.cg-star-select').each(function(index) {
+                var starRating = $(this).data('rating');
+                if (starRating <= rating) {
+                    $(this).removeClass('dashicons-star-empty').addClass('dashicons-star-filled');
+                } else {
+                    $(this).removeClass('dashicons-star-filled').addClass('dashicons-star-empty');
+                }
+            });
+        }
+        
+        // Close edit review modal
+        $('.cg-modal-close, .cg-cancel-review-btn').on('click', function() {
+            $('#cg-edit-review-modal').hide();
+        });
+        
+        // Save review changes
+        $('.cg-save-review-btn').on('click', function() {
+            var reviewId = $('#cg-review-id').val();
+            var author = $('#cg-review-author').val();
+            var rating = $('#cg-review-rating').val();
+            var reviewText = $('#cg-review-text').val();
+            
+            // Validate input
+            if (!author || !reviewText) {
+                $('#cg-edit-review-error').html('Lütfen tüm alanları doldurun').show();
+                return;
+            }
+            
+            // Show loading state
+            var $saveBtn = $(this);
+            var originalText = $saveBtn.html();
+            $saveBtn.html('<span class="spinner is-active" style="float: none; margin: 0 5px 0 0;"></span> Kaydediliyor...');
+            $saveBtn.prop('disabled', true);
+            
+            // AJAX request to update review
+            $.ajax({
+                url: cg_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'cg_update_review',
+                    nonce: cg_data.nonce,
+                    review_id: reviewId,
+                    author: author,
+                    rating: rating,
+                    content: reviewText
+                },
+                success: function(response) {
+                    $saveBtn.html(originalText);
+                    $saveBtn.prop('disabled', false);
+                    
+                    if (response.success) {
+                        // Update the table row
+                        var $reviewRow = $('tr[data-review-id="' + reviewId + '"]');
+                        $reviewRow.find('.cg-review-author').text(author);
+                        $reviewRow.find('.cg-review-text').text(reviewText);
+                        
+                        // Update rating stars
+                        var ratingHtml = '';
+                        for (var i = 1; i <= 5; i++) {
+                            if (i <= rating) {
+                                ratingHtml += '<span class="dashicons dashicons-star-filled"></span>';
+                            } else {
+                                ratingHtml += '<span class="dashicons dashicons-star-empty"></span>';
+                            }
+                        }
+                        $reviewRow.find('.cg-review-rating').html(ratingHtml);
+                        
+                        // Highlight updated row
+                        $reviewRow.css('background-color', '#f0f7ff');
+                        setTimeout(function() {
+                            $reviewRow.css('transition', 'background-color 1s ease');
+                            $reviewRow.css('background-color', '');
+                        }, 50);
+                        
+                        // Hide the modal
+                        $('#cg-edit-review-modal').hide();
+                    } else {
+                        $('#cg-edit-review-error').html(response.data.message).show();
+                    }
+                },
+                error: function() {
+                    $saveBtn.html(originalText);
+                    $saveBtn.prop('disabled', false);
+                    $('#cg-edit-review-error').html('Sunucuyla bağlantı kurulurken bir hata oluştu').show();
+                }
+            });
+        });
+        
+        // Delete review
+        $(document).on('click', '.cg-delete-review-btn', function() {
+            if (!confirm('Bu yorumu silmek istediğinize emin misiniz?')) {
+                return;
+            }
+            
+            var reviewId = $(this).data('review-id');
+            var $reviewRow = $('tr[data-review-id="' + reviewId + '"]');
+            
+            // Show loading state
+            var $deleteBtn = $(this);
+            var originalHtml = $deleteBtn.html();
+            $deleteBtn.html('<span class="spinner is-active" style="float: none; margin: 0 5px 0 0;"></span>');
+            $deleteBtn.prop('disabled', true);
+            
+            // AJAX request to delete review
+            $.ajax({
+                url: cg_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'cg_delete_review',
+                    nonce: cg_data.nonce,
+                    review_id: reviewId
+                },
+                success: function(response) {
+                    $deleteBtn.html(originalHtml);
+                    $deleteBtn.prop('disabled', false);
+                    
+                    if (response.success) {
+                        // Remove the row with a fade effect
+                        $reviewRow.fadeOut(400, function() {
+                            $(this).remove();
+                            
+                            // Show "no reviews" message if this was the last review
+                            if ($('.cg-reviews-table tbody tr').length === 0) {
+                                $('.cg-reviews-table-container').html('<div class="notice notice-info inline"><p>Yorum bulunamadı.</p></div>');
+                            }
+                        });
+                    } else {
+                        alert(response.data.message || 'Yorum silinirken bir hata oluştu');
+                    }
+                },
+                error: function() {
+                    $deleteBtn.html(originalHtml);
+                    $deleteBtn.prop('disabled', false);
+                    alert('Sunucuyla bağlantı kurulurken bir hata oluştu');
+                }
+            });
+        });
     });
     
 })(jQuery); 

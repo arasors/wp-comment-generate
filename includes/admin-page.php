@@ -47,6 +47,7 @@ $default_models = array(
         <nav class="cg-tabs-nav">
             <a href="#" class="cg-tab-link active" data-tab="settings"><?php _e('Settings', 'comment-generator'); ?></a>
             <a href="#" class="cg-tab-link" data-tab="products"><?php _e('Products', 'comment-generator'); ?></a>
+            <a href="#" class="cg-tab-link" data-tab="reviews"><?php _e('All Reviews', 'comment-generator'); ?></a>
         </nav>
         
         <div class="cg-tab-content active" id="settings-tab">
@@ -308,6 +309,139 @@ $default_models = array(
                             </button>
                             <button type="button" class="button button-primary cg-save-btn">
                                 <span class="dashicons dashicons-yes"></span> <?php _e('Save Selected Comments', 'comment-generator'); ?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cg-tab-content" id="reviews-tab">
+            <div class="cg-card">
+                <h2><?php _e('All Product Reviews', 'comment-generator'); ?></h2>
+                <p><?php _e('View and edit all the reviews generated for your products.', 'comment-generator'); ?></p>
+                
+                <?php
+                // Get all product reviews
+                $reviews = get_comments(array(
+                    'status' => 'approve',
+                    'type' => 'review',
+                    'meta_query' => array(
+                        array(
+                            'key' => 'rating',
+                            'compare' => 'EXISTS',
+                        ),
+                    ),
+                    'number' => 100, // Limit the number of reviews
+                ));
+                
+                if (empty($reviews)) {
+                    echo '<div class="notice notice-info inline"><p>' . __('No reviews found.', 'comment-generator') . '</p></div>';
+                } else {
+                ?>
+                <div class="cg-reviews-table-container">
+                    <table class="wp-list-table widefat fixed striped cg-reviews-table">
+                        <thead>
+                            <tr>
+                                <th class="cg-review-product"><?php _e('Product', 'comment-generator'); ?></th>
+                                <th class="cg-review-author"><?php _e('Customer', 'comment-generator'); ?></th>
+                                <th class="cg-review-rating"><?php _e('Rating', 'comment-generator'); ?></th>
+                                <th class="cg-review-comment"><?php _e('Review', 'comment-generator'); ?></th>
+                                <th class="cg-review-actions"><?php _e('Actions', 'comment-generator'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($reviews as $review) : 
+                                $product_id = $review->comment_post_ID;
+                                $product = wc_get_product($product_id);
+                                $rating = get_comment_meta($review->comment_ID, 'rating', true);
+                                
+                                if (!$product) {
+                                    continue; // Skip if product does not exist anymore
+                                }
+                            ?>
+                            <tr data-review-id="<?php echo esc_attr($review->comment_ID); ?>">
+                                <td class="cg-review-product">
+                                    <a href="<?php echo esc_url(get_edit_post_link($product_id)); ?>" target="_blank">
+                                        <?php echo esc_html($product->get_name()); ?>
+                                    </a>
+                                </td>
+                                <td class="cg-review-author">
+                                    <?php echo esc_html($review->comment_author); ?>
+                                </td>
+                                <td class="cg-review-rating">
+                                    <?php 
+                                    for ($i = 1; $i <= 5; $i++) {
+                                        if ($i <= $rating) {
+                                            echo '<span class="dashicons dashicons-star-filled"></span>';
+                                        } else {
+                                            echo '<span class="dashicons dashicons-star-empty"></span>';
+                                        }
+                                    }
+                                    ?>
+                                </td>
+                                <td class="cg-review-comment">
+                                    <div class="cg-review-text">
+                                        <?php echo esc_html($review->comment_content); ?>
+                                    </div>
+                                </td>
+                                <td class="cg-review-actions">
+                                    <button type="button" class="button cg-edit-review-btn" data-review-id="<?php echo esc_attr($review->comment_ID); ?>">
+                                        <span class="dashicons dashicons-edit"></span> <?php _e('Edit', 'comment-generator'); ?>
+                                    </button>
+                                    <button type="button" class="button cg-delete-review-btn" data-review-id="<?php echo esc_attr($review->comment_ID); ?>">
+                                        <span class="dashicons dashicons-trash"></span> <?php _e('Delete', 'comment-generator'); ?>
+                                    </button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php } ?>
+            </div>
+            
+            <!-- Edit Review Modal -->
+            <div id="cg-edit-review-modal" class="cg-modal">
+                <div class="cg-modal-content">
+                    <div class="cg-modal-header">
+                        <h2><?php _e('Edit Review', 'comment-generator'); ?></h2>
+                        <button type="button" class="cg-modal-close">&times;</button>
+                    </div>
+                    <div class="cg-modal-body">
+                        <form id="cg-edit-review-form">
+                            <input type="hidden" id="cg-review-id" name="review_id" value="">
+                            
+                            <div class="cg-form-row">
+                                <label for="cg-review-author"><?php _e('Customer Name', 'comment-generator'); ?></label>
+                                <input type="text" id="cg-review-author" name="review_author" class="regular-text">
+                            </div>
+                            
+                            <div class="cg-form-row">
+                                <label><?php _e('Rating', 'comment-generator'); ?></label>
+                                <div class="cg-rating-selector">
+                                    <?php for ($i = 1; $i <= 5; $i++) : ?>
+                                    <span class="dashicons dashicons-star-empty cg-star-select" data-rating="<?php echo $i; ?>"></span>
+                                    <?php endfor; ?>
+                                    <input type="hidden" id="cg-review-rating" name="review_rating" value="5">
+                                </div>
+                            </div>
+                            
+                            <div class="cg-form-row">
+                                <label for="cg-review-text"><?php _e('Review Text', 'comment-generator'); ?></label>
+                                <textarea id="cg-review-text" name="review_text" rows="5" class="large-text"></textarea>
+                            </div>
+                        </form>
+                        
+                        <div id="cg-edit-review-error" class="notice notice-error" style="display: none;"></div>
+                    </div>
+                    <div class="cg-modal-footer">
+                        <div class="cg-modal-actions">
+                            <button type="button" class="button button-primary cg-save-review-btn">
+                                <span class="dashicons dashicons-yes"></span> <?php _e('Save Changes', 'comment-generator'); ?>
+                            </button>
+                            <button type="button" class="button cg-cancel-review-btn">
+                                <span class="dashicons dashicons-no"></span> <?php _e('Cancel', 'comment-generator'); ?>
                             </button>
                         </div>
                     </div>

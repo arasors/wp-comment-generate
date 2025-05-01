@@ -712,4 +712,66 @@
 
 .cg-warning-box .dashicons {
     color: #f0c33c;
+}
+
+/* Reviews Table */
+.cg-reviews-table-container {
+    margin-top: 15px;
+    overflow-x: auto;
+}
+
+.cg-reviews-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cg-review-product {
+    width: 15%;
+}
+
+.cg-review-author {
+    width: 15%;
+}
+
+.cg-review-rating {
+    width: 10%;
+}
+
+.cg-review-comment {
+    width: 40%;
+}
+
+.cg-review-actions {
+    width: 20%;
+    text-align: right;
+}
+
+.cg-review-text {
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.cg-edit-review-btn, 
+.cg-delete-review-btn {
+    margin-left: 5px;
+}
+
+/* Rating Selector */
+.cg-rating-selector {
+    display: flex;
+    align-items: center;
+}
+
+.cg-rating-selector .dashicons {
+    font-size: 24px;
+    color: #ffb900;
+    cursor: pointer;
+}
+
+.cg-star-select {
+    transition: transform 0.1s ease;
+}
+
+.cg-star-select:hover {
+    transform: scale(1.2);
 } 

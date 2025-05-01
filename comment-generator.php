@@ -63,6 +63,8 @@ class Comment_Generator {
         add_action('wp_ajax_cg_generate_comments', array($this, 'ajax_generate_comments'));
         add_action('wp_ajax_cg_save_comments', array($this, 'ajax_save_comments'));
         add_action('wp_ajax_cg_regenerate_single_comment', array($this, 'ajax_regenerate_single_comment'));
+        add_action('wp_ajax_cg_update_review', array($this, 'ajax_update_review'));
+        add_action('wp_ajax_cg_delete_review', array($this, 'ajax_delete_review'));
     }
     
     public function woocommerce_not_active_notice() {
@@ -427,6 +429,123 @@ class Comment_Generator {
             );
             
             wp_send_json_success(array('comment' => $comment));
+        }
+    }
+    
+    public function ajax_update_review() {
+        check_ajax_referer('cg_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'comment-generator')));
+        }
+        
+        $review_id = isset($_POST['review_id']) ? intval($_POST['review_id']) : 0;
+        $author = isset($_POST['author']) ? sanitize_text_field($_POST['author']) : '';
+        $rating = isset($_POST['rating']) ? intval($_POST['rating']) : 5;
+        $content = isset($_POST['content']) ? sanitize_textarea_field($_POST['content']) : '';
+        
+        if (!$review_id || empty($author) || empty($content)) {
+            wp_send_json_error(array('message' => __('Invalid review data.', 'comment-generator')));
+        }
+        
+        // Ensure rating is between 1-5
+        $rating = min(5, max(1, $rating));
+        
+        // Update the comment
+        $comment_data = array(
+            'comment_ID' => $review_id,
+            'comment_author' => $author,
+            'comment_content' => $content,
+        );
+        
+        $result = wp_update_comment($comment_data);
+        
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Failed to update review.', 'comment-generator')));
+        }
+        
+        // Update the rating
+        update_comment_meta($review_id, 'rating', $rating);
+        
+        // Update product rating average
+        $comment = get_comment($review_id);
+        $product_id = $comment->comment_post_ID;
+        $this->update_product_rating($product_id);
+        
+        wp_send_json_success(array('message' => __('Review updated successfully.', 'comment-generator')));
+    }
+    
+    public function ajax_delete_review() {
+        check_ajax_referer('cg_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'comment-generator')));
+        }
+        
+        $review_id = isset($_POST['review_id']) ? intval($_POST['review_id']) : 0;
+        
+        if (!$review_id) {
+            wp_send_json_error(array('message' => __('Invalid review ID.', 'comment-generator')));
+        }
+        
+        // Get the product ID before deleting the comment
+        $comment = get_comment($review_id);
+        if (!$comment) {
+            wp_send_json_error(array('message' => __('Review not found.', 'comment-generator')));
+        }
+        
+        $product_id = $comment->comment_post_ID;
+        
+        // Delete the comment
+        $result = wp_delete_comment($review_id, true);
+        
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Failed to delete review.', 'comment-generator')));
+        }
+        
+        // Update product rating average
+        $this->update_product_rating($product_id);
+        
+        wp_send_json_success(array('message' => __('Review deleted successfully.', 'comment-generator')));
+    }
+    
+    private function update_product_rating($product_id) {
+        if (function_exists('wc_review_ratings_enabled') && wc_review_ratings_enabled()) {
+            $product = wc_get_product($product_id);
+            
+            if (!$product) {
+                return;
+            }
+            
+            // Get the review count
+            $reviews_count = get_comments(array(
+                'post_id' => $product_id,
+                'status' => 'approve',
+                'type' => 'review',
+                'count' => true,
+            ));
+            
+            // Get the average rating
+            global $wpdb;
+            $rating = $wpdb->get_var($wpdb->prepare("
+                SELECT AVG(meta_value) FROM $wpdb->commentmeta
+                LEFT JOIN $wpdb->comments ON $wpdb->commentmeta.comment_id = $wpdb->comments.comment_ID
+                WHERE meta_key = 'rating'
+                AND comment_post_ID = %d
+                AND comment_approved = '1'
+                AND meta_value > 0
+            ", $product_id));
+            
+            // Store the average rating
+            update_post_meta($product_id, '_wc_average_rating', $rating);
+            
+            // Store the review count
+            update_post_meta($product_id, '_wc_review_count', $reviews_count);
+            
+            // Clear any caches
+            if (method_exists($product, 'clear_cache')) {
+                $product->clear_cache();
+            }
         }
     }
 }

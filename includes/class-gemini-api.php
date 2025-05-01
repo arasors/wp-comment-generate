@@ -45,19 +45,35 @@ class CG_Gemini_API {
         
         $language_name = isset($languages[$comment_language]) ? $languages[$comment_language] : 'English';
         
+        // Get custom names for use in generated comments
+        $default_names_setting = get_option('cg_default_names', '');
+        $custom_names = array();
+        
+        if (!empty($default_names_setting)) {
+            $custom_names = explode("\n", $default_names_setting);
+            $custom_names = array_map('trim', $custom_names);
+            $custom_names = array_filter($custom_names);
+        }
+        
+        if (empty($custom_names)) {
+            $custom_names = array(
+                'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis', 
+                'David Wilson', 'Jennifer Martinez', 'Robert Taylor', 'Lisa Anderson'
+            );
+        }
+        
         // Build a JSON-friendly prompt
         $json_prompt = sprintf(
             "Ürün adı: \"%s\". Ürün açıklaması: \"%s\". " .
             "5 adet yorum üretin. " .
-            "Yorumlar %s dilinde yazılmalıdır." .
-            "Yanıt MUST valid JSON format ONLY, with this structure: { \"reviews\": [ { \"name\": \"Customer Name\", \"rating\": 5, \"comment\": \"Review text here\" }, ... ] }. " .
-            "Gerçek müşteri isimleri, %s diline uygun olarak sağlanmalıdır. " .
+            "Yorumlar %s dilinde yazılmalıdır. " .
+            "İsim kullanmayın, yorumlarda sadece metinleri üretin. " .
+            "Yanıt MUST valid JSON format ONLY, with this structure: { \"reviews\": [ { \"rating\": 5, \"comment\": \"Review text here\" }, ... ] }. " .
             "Yanıt JSON yapısı dışında herhangi bir metin içermemelidir. " .
             "TÜM YORUMLAR KESINLIKLE SADECE %s DILINDE OLMALIDIR. " .
             "Yorumlar gerçekçi ve stil ve uzunluk açısından değişken olmalıdır.",
             $product_name,
             $product_description,
-            $language_name,
             $language_name,
             strtoupper($language_name)
         );
@@ -77,7 +93,7 @@ class CG_Gemini_API {
         }
         
         // Try to parse the response as JSON
-        return $this->parse_json_response($response, $product_name, $min_rating, $max_rating);
+        return $this->parse_json_response($response, $product_name, $min_rating, $max_rating, $custom_names);
     }
     
     private function make_api_request($prompt) {
@@ -144,7 +160,7 @@ class CG_Gemini_API {
         return $data['candidates'][0]['content']['parts'][0]['text'];
     }
     
-    private function parse_json_response($response, $product_name, $min_rating = 4, $max_rating = 5) {
+    private function parse_json_response($response, $product_name, $min_rating = 4, $max_rating = 5, $custom_names = array()) {
         // Try to find and extract JSON from the response
         $json_pattern = '/(\{.*\})/s';
         if (preg_match($json_pattern, $response, $matches)) {
@@ -160,13 +176,12 @@ class CG_Gemini_API {
         if (json_last_error() === JSON_ERROR_NONE && !empty($data) && isset($data['reviews']) && is_array($data['reviews'])) {
             $comments = array();
             
-            foreach ($data['reviews'] as $review) {
+            foreach ($data['reviews'] as $index => $review) {
                 // Validate required fields
-                if (isset($review['name'], $review['rating'], $review['comment']) && 
-                    !empty($review['name']) && !empty($review['comment'])) {
+                if (isset($review['comment']) && !empty($review['comment'])) {
                     
-                    // Ensure rating is within min-max range
-                    $rating = intval($review['rating']);
+                    // Get rating or use default
+                    $rating = isset($review['rating']) ? intval($review['rating']) : rand($min_rating, $max_rating);
                     $rating = min(5, max(1, $rating));
                     
                     if ($rating < $min_rating) {
@@ -175,8 +190,12 @@ class CG_Gemini_API {
                         $rating = $max_rating;
                     }
                     
+                    // Use a name from custom names
+                    $name_index = $index % count($custom_names);
+                    $name = $custom_names[$name_index];
+                    
                     $comments[] = array(
-                        'name' => $review['name'],
+                        'name' => $name,
                         'rating' => $rating,
                         'comment' => $review['comment'],
                         'selected' => true,
@@ -193,7 +212,7 @@ class CG_Gemini_API {
         }
         
         // If JSON parsing failed, try legacy regex-based parsing
-        $comments = $this->parse_comments_from_response($response, $product_name, $min_rating, $max_rating);
+        $comments = $this->parse_comments_from_response($response, $product_name, $min_rating, $max_rating, $custom_names);
         
         // If regex parsing returned an error, include JSON parsing error in the debug info
         if (is_wp_error($comments)) {
@@ -208,9 +227,12 @@ class CG_Gemini_API {
         return $comments;
     }
     
-    private function parse_comments_from_response($response, $product_name, $min_rating = 4, $max_rating = 5) {
+    private function parse_comments_from_response($response, $product_name, $min_rating = 4, $max_rating = 5, $custom_names = array()) {
         // Initialize an array to store the parsed comments
         $comments = array();
+        
+        // Get comment language
+        $comment_language = get_option('cg_comment_language', 'en');
         
         // Use regex to try to find structured reviews, which might be in various formats
         // Pattern 1: Looking for numbered reviews with stars/ratings
@@ -306,25 +328,11 @@ class CG_Gemini_API {
         // Make sure we have between 5-8 comments
         if (count($comments) < 5) {
             // If we have too few, generate some generic ones using custom names
-            $default_names_setting = get_option('cg_default_names', '');
-            
-            if (!empty($default_names_setting)) {
-                $names_array = explode("\n", $default_names_setting);
-                $names_array = array_map('trim', $names_array);
-                $names_array = array_filter($names_array);
-            } else {
-                $names_array = array(
-                    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis', 
-                    'David Wilson', 'Jennifer Martinez', 'Robert Taylor', 'Lisa Anderson'
-                );
-            }
-            
-            // Get language-specific generic comments
             $generic_comments = $this->get_generic_comments_for_language($comment_language, $product_name);
             
             while (count($comments) < 5) {
                 $comments[] = array(
-                    'name' => $names_array[array_rand($names_array)],
+                    'name' => $custom_names[array_rand($custom_names)],
                     'rating' => rand($min_rating, $max_rating),
                     'comment' => $generic_comments[array_rand($generic_comments)],
                     'selected' => true,
