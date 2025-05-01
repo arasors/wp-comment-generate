@@ -176,6 +176,17 @@ class CG_Gemini_API {
         if (json_last_error() === JSON_ERROR_NONE && !empty($data) && isset($data['reviews']) && is_array($data['reviews'])) {
             $comments = array();
             
+            // Karıştırılmış isimler dizisi oluştur
+            $shuffled_names = $custom_names;
+            shuffle($shuffled_names);
+            
+            // İsim sayısı yetersizse isim dizisini tekrarla
+            while (count($shuffled_names) < count($data['reviews'])) {
+                $temp_names = $custom_names;
+                shuffle($temp_names);
+                $shuffled_names = array_merge($shuffled_names, $temp_names);
+            }
+            
             foreach ($data['reviews'] as $index => $review) {
                 // Validate required fields
                 if (isset($review['comment']) && !empty($review['comment'])) {
@@ -190,9 +201,8 @@ class CG_Gemini_API {
                         $rating = $max_rating;
                     }
                     
-                    // Use a name from custom names
-                    $name_index = $index % count($custom_names);
-                    $name = $custom_names[$name_index];
+                    // Karıştırılmış isimler dizisinden bir isim seç
+                    $name = $shuffled_names[$index];
                     
                     $comments[] = array(
                         'name' => $name,
@@ -234,11 +244,15 @@ class CG_Gemini_API {
         // Get comment language
         $comment_language = get_option('cg_comment_language', 'en');
         
+        // İsimleri karıştır
+        $shuffled_names = $custom_names;
+        shuffle($shuffled_names);
+        
         // Use regex to try to find structured reviews, which might be in various formats
         // Pattern 1: Looking for numbered reviews with stars/ratings
         if (preg_match_all('/(\d+\.|\*)?\s*(?:Name:|Customer:)?\s*([^,\n]+)(?:[,:]|\s+-)\s*(?:Rating:|Stars:)?\s*(\d+(?:\.\d+)?)\s*(?:\/\s*5|\s*stars?)[^\n]*\n((?:(?!\d+\.|\*|\n\s*(?:Name:|Customer:)).)+)/is', $response, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $name = trim($match[2]);
+                $name = !empty($shuffled_names) ? array_shift($shuffled_names) : trim($match[2]);
                 $rating = min(5, max(1, intval($match[3])));
                 $comment = trim($match[4]);
                 
@@ -256,7 +270,7 @@ class CG_Gemini_API {
         // Pattern 2: Looking for reviews separated by newlines with clear name/rating/comment structure
         if (empty($comments) && preg_match_all('/(?:Customer|Name):\s*([^\n]+)\n(?:Rating|Stars):\s*(\d+(?:\.\d+)?)[^\n]*\n(?:Comment|Review):\s*([^\n]+(?:\n(?!Customer:|Name:|Rating:|Stars:|Comment:|Review:)[^\n]+)*)/is', $response, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $name = trim($match[1]);
+                $name = !empty($shuffled_names) ? array_shift($shuffled_names) : trim($match[1]);
                 $rating = min(5, max(1, intval($match[2])));
                 $comment = trim($match[3]);
                 
@@ -275,7 +289,7 @@ class CG_Gemini_API {
         if (empty($comments) && preg_match_all('/"([^"]+)"\s*(?:-|–|—)\s*([^,\n]+)(?:[,\s]+(\d+)(?:\s*\/\s*5|\s*stars?)|)/is', $response, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $comment = trim($match[1]);
-                $name = trim($match[2]);
+                $name = !empty($shuffled_names) ? array_shift($shuffled_names) : trim($match[2]);
                 $rating = isset($match[3]) ? min(5, max(1, intval($match[3]))) : rand($min_rating, $max_rating);
                 
                 if (!empty($name) && !empty($comment)) {
@@ -292,7 +306,7 @@ class CG_Gemini_API {
         // Pattern 4: Markdown-style reviews with bold headers (for newer Gemini API responses)
         if (empty($comments) && preg_match_all('/\d+\.\s+\*\*(?:Customer\s+Name|Name):\*\*\s+([^\n]+)\n\s+\*\*(?:Star\s+Rating|Rating):\*\*\s+(\d+)[^\n]*\n\s+\*\*(?:Comment|Review):\*\*\s+(?:")?([^"]+)(?:")?/is', $response, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $name = trim($match[1]);
+                $name = !empty($shuffled_names) ? array_shift($shuffled_names) : trim($match[1]);
                 $rating = min(5, max(1, intval($match[2])));
                 $comment = trim($match[3]);
                 
@@ -328,6 +342,9 @@ class CG_Gemini_API {
         // Make sure we have between 5-8 comments
         if (count($comments) < 5) {
             // If we have too few, generate some generic ones using custom names
+            // İsimleri yeniden karıştır
+            shuffle($custom_names);
+            
             $generic_comments = $this->get_generic_comments_for_language($comment_language, $product_name);
             
             while (count($comments) < 5) {
