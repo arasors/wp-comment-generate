@@ -229,9 +229,9 @@
                 
                 if (isSelected) {
                     selectedComments.push({
-                        name: $item.data('name'),
-                        rating: $item.data('rating'),
-                        comment: $item.data('comment'),
+                        name: $item.attr('data-name'),
+                        rating: $item.attr('data-rating'),
+                        comment: $item.attr('data-comment'),
                         selected: 'true'
                     });
                 }
@@ -338,24 +338,23 @@
             var stars = '';
             for (var i = 1; i <= 5; i++) {
                 if (i <= comment.rating) {
-                    stars += '<span class="cg-star dashicons dashicons-star-filled"></span>';
+                    stars += '<span class="dashicons dashicons-star-filled" data-rating="' + i + '"></span>';
                 } else {
-                    stars += '<span class="cg-star dashicons dashicons-star-empty"></span>';
+                    stars += '<span class="dashicons dashicons-star-empty" data-rating="' + i + '"></span>';
                 }
             }
             
             // Update data attributes
-            $commentItem.data('name', comment.name);
-            $commentItem.data('rating', comment.rating);
-            $commentItem.data('comment', comment.comment);
             $commentItem.attr('data-name', comment.name);
             $commentItem.attr('data-rating', comment.rating);
             $commentItem.attr('data-comment', comment.comment);
             
             // Update DOM content
             $commentItem.find('.cg-comment-author').text(comment.name);
+            $commentItem.find('.cg-edit-author').val(comment.name);
             $commentItem.find('.cg-comment-rating').html(stars);
             $commentItem.find('.cg-comment-text').text(comment.comment);
+            $commentItem.find('.cg-edit-comment').val(comment.comment);
             
             // Flash effect to highlight the change
             $commentItem.css('background-color', '#f7fcff');
@@ -419,25 +418,41 @@
             var stars = '';
             for (var i = 1; i <= 5; i++) {
                 if (i <= comment.rating) {
-                    stars += '<span class="dashicons dashicons-star-filled"></span>';
+                    stars += '<span class="dashicons dashicons-star-filled" data-rating="' + i + '"></span>';
                 } else {
-                    stars += '<span class="dashicons dashicons-star-empty"></span>';
+                    stars += '<span class="dashicons dashicons-star-empty" data-rating="' + i + '"></span>';
                 }
             }
             
-            var commentHtml = '<div class="cg-comment-item">' +
+            var commentHtml = '<div class="cg-comment-item" data-index="' + $('.cg-comment-item').length + '" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
+                            '<div class="cg-comment-actions">' +
+                                '<button type="button" class="cg-regenerate-comment-btn" title="' + cg_data.regenerate_comment_text + '">' +
+                                    '<span class="dashicons dashicons-update"></span>' +
+                                '</button>' +
+                                '<button type="button" class="cg-edit-comment-btn" title="' + (cg_data.edit_comment_text || 'Edit this comment') + '">' +
+                                    '<span class="dashicons dashicons-edit"></span>' +
+                                '</button>' +
+                            '</div>' +
                             '<div class="cg-comment-header">' +
-                            '<input type="checkbox" class="cg-comment-checkbox" checked>' +
-                            '<span class="cg-comment-author">' + comment.name + '</span>' +
-                            '<div class="cg-comment-rating" data-rating="' + comment.rating + '">' + stars + '</div>' +
-                            '<button type="button" class="cg-regenerate-single-btn" title="' + cg_data.regenerate_comment_text + '">' +
-                            '<span class="dashicons dashicons-update"></span>' +
-                            '</button>' +
+                                '<div class="cg-comment-author">' + escapeHtml(comment.name) + '</div>' +
+                                '<div class="cg-comment-author-edit" style="display:none;">' +
+                                    '<input type="text" class="cg-edit-author" value="' + escapeHtml(comment.name) + '">' +
+                                '</div>' +
+                                '<div class="cg-comment-rating">' + stars + '</div>' +
                             '</div>' +
-                            '<div class="cg-comment-body">' +
-                            '<div class="cg-comment-text">' + comment.comment + '</div>' +
+                            '<div class="cg-comment-text">' + escapeHtml(comment.comment) + '</div>' +
+                            '<div class="cg-comment-text-edit" style="display:none;">' +
+                                '<textarea class="cg-edit-comment">' + escapeHtml(comment.comment) + '</textarea>' +
+                                '<div class="cg-edit-actions">' +
+                                    '<button type="button" class="button button-primary cg-save-edit-btn">Save Changes</button>' +
+                                    '<button type="button" class="button cg-cancel-edit-btn">Cancel</button>' +
+                                '</div>' +
                             '</div>' +
-                            '</div>';
+                            '<div class="cg-comment-select">' +
+                                '<input type="checkbox" class="cg-comment-checkbox" ' + (comment.selected ? 'checked' : '') + ' id="comment-' + $('.cg-comment-item').length + '">' +
+                                '<label for="comment-' + $('.cg-comment-item').length + '">Select this comment</label>' +
+                            '</div>' +
+                        '</div>';
                             
             $('.cg-comments-list').append(commentHtml);
             
@@ -448,9 +463,88 @@
                                  '<div class="cg-response-label"><span class="dashicons dashicons-admin-comments"></span> Auto-response:</div>' +
                                  '<div class="cg-response-text">' + responseText + '</div>' +
                                  '</div>';
-                $('.cg-comments-list .cg-comment-item:last .cg-comment-body').append(responseHtml);
+                $('.cg-comments-list .cg-comment-item:last .cg-comment-select').before(responseHtml);
             }
         }
+        
+        // Handle edit comment button click
+        $(document).on('click', '.cg-edit-comment-btn', function() {
+            var $commentItem = $(this).closest('.cg-comment-item');
+            
+            // Show edit fields and hide display fields
+            $commentItem.find('.cg-comment-author').hide();
+            $commentItem.find('.cg-comment-author-edit').show();
+            $commentItem.find('.cg-comment-text').hide();
+            $commentItem.find('.cg-comment-text-edit').show();
+            
+            // Focus on the author name input
+            $commentItem.find('.cg-edit-author').focus();
+        });
+        
+        // Handle cancel edit button click
+        $(document).on('click', '.cg-cancel-edit-btn', function() {
+            var $commentItem = $(this).closest('.cg-comment-item');
+            
+            // Hide edit fields and show display fields
+            $commentItem.find('.cg-comment-author').show();
+            $commentItem.find('.cg-comment-author-edit').hide();
+            $commentItem.find('.cg-comment-text').show();
+            $commentItem.find('.cg-comment-text-edit').hide();
+        });
+        
+        // Handle save edit button click
+        $(document).on('click', '.cg-save-edit-btn', function() {
+            var $commentItem = $(this).closest('.cg-comment-item');
+            
+            // Get edited values
+            var newName = $commentItem.find('.cg-edit-author').val();
+            var newComment = $commentItem.find('.cg-edit-comment').val();
+            var currentRating = parseInt($commentItem.attr('data-rating'));
+            
+            // Update data attributes
+            $commentItem.attr('data-name', newName);
+            $commentItem.attr('data-comment', newComment);
+            
+            // Update display fields
+            $commentItem.find('.cg-comment-author').text(newName);
+            $commentItem.find('.cg-comment-text').text(newComment);
+            
+            // Hide edit fields and show display fields
+            $commentItem.find('.cg-comment-author').show();
+            $commentItem.find('.cg-comment-author-edit').hide();
+            $commentItem.find('.cg-comment-text').show();
+            $commentItem.find('.cg-comment-text-edit').hide();
+            
+            // Flash effect to highlight the change
+            $commentItem.css('background-color', '#f0f7ff');
+            setTimeout(function() {
+                $commentItem.css('transition', 'background-color 1s ease');
+                $commentItem.css('background-color', '');
+            }, 50);
+        });
+        
+        // Handle star rating click in editable mode
+        $(document).on('click', '.cg-comment-rating .dashicons', function() {
+            var $star = $(this);
+            var $commentItem = $star.closest('.cg-comment-item');
+            var newRating = parseInt($star.attr('data-rating'));
+            
+            // Update the data attribute
+            $commentItem.attr('data-rating', newRating);
+            
+            // Update the star display
+            var $stars = $commentItem.find('.cg-comment-rating .dashicons');
+            $stars.each(function(index) {
+                var $currentStar = $(this);
+                var currentRating = parseInt($currentStar.attr('data-rating'));
+                
+                if (currentRating <= newRating) {
+                    $currentStar.removeClass('dashicons-star-empty').addClass('dashicons-star-filled');
+                } else {
+                    $currentStar.removeClass('dashicons-star-filled').addClass('dashicons-star-empty');
+                }
+            });
+        });
     });
     
 })(jQuery); 

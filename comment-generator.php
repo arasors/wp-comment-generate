@@ -177,7 +177,8 @@ class Comment_Generator {
             'model_id_placeholder' => __('Model ID', 'comment-generator'),
             'model_name_placeholder' => __('Display Name', 'comment-generator'),
             'remove_text' => __('Remove', 'comment-generator'),
-            'regenerate_comment_text' => __('Regenerate this comment', 'comment-generator')
+            'regenerate_comment_text' => __('Regenerate this comment', 'comment-generator'),
+            'edit_comment_text' => __('Edit this comment', 'comment-generator')
         ));
     }
     
