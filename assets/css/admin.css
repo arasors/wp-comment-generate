@@ -302,14 +302,16 @@
     background-color: #f9f9f9;
 }
 
+/* Comment Select Area */
 .cg-comment-select {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
+    gap: 10px;
 }
 
 .cg-comment-select .cg-comment-checkbox {
-    margin-right: 8px;
+    margin-right: 5px;
 }
 
 .cg-comment-content {
@@ -351,6 +353,7 @@
     line-height: 1.5;
 }
 
+/* Comment Actions */
 .cg-comment-actions {
     display: flex;
     gap: 5px;
@@ -466,41 +469,59 @@
     margin-right: 5px;
 }
 
-/* Comment Item Actions */
-.cg-comment-actions {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 5px;
-}
-
-.cg-regenerate-comment-btn,
+/* Edit Button */
 .cg-edit-comment-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: #f8f8f8;
+    background-color: #f0f7ff;
+    color: #0073aa;
+    border: 1px solid #c4daf2;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: auto;
+}
+
+.cg-edit-comment-btn:hover {
+    background-color: #e0f0ff;
+    color: #0062a3;
+}
+
+.cg-edit-comment-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+}
+
+/* Regenerate Button */
+.cg-regenerate-comment-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7f7f7;
     color: #555;
     border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.cg-regenerate-comment-btn:hover,
-.cg-edit-comment-btn:hover {
+.cg-regenerate-comment-btn:hover {
     background-color: #e9e9e9;
     color: #2271b1;
 }
 
-.cg-regenerate-comment-btn .dashicons,
-.cg-edit-comment-btn .dashicons {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+.cg-regenerate-comment-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
 }
 
 .cg-comment-item.regenerating {

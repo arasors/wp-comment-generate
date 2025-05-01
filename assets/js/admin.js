@@ -368,7 +368,7 @@
                         '<div class="cg-comment-text">' + escapeHtml(comment.comment) + '</div>' +
                         '<div class="cg-comment-select">' +
                             '<input type="checkbox" class="cg-comment-checkbox" ' + (comment.selected ? 'checked' : '') + ' id="comment-' + index + '">' +
-                            '<label for="comment-' + index + '">Select this comment</label>' +
+                            '<label for="comment-' + index + '"></label>' +
                         '</div>' +
                     '</div>'
                 );
@@ -481,6 +481,9 @@
                             '<div class="cg-comment-select">' +
                                 '<input type="checkbox" class="cg-comment-checkbox" ' + (comment.selected ? 'checked' : '') + ' id="comment-' + $('.cg-comment-item').length + '">' +
                                 '<label for="comment-' + $('.cg-comment-item').length + '">Seç</label>' +
+                                '<button type="button" class="cg-edit-comment-btn" title="' + (cg_data.edit_comment_text || 'Yorumu Düzenle') + '">' +
+                                    '<span class="dashicons dashicons-edit"></span> Düzenle' +
+                                '</button>' +
                             '</div>' +
                             '<div class="cg-comment-content">' +
                                 '<div class="cg-comment-header">' +
@@ -490,10 +493,7 @@
                                     '</div>' +
                                     '<div class="cg-comment-actions">' +
                                         '<button type="button" class="cg-regenerate-comment-btn" title="' + cg_data.regenerate_comment_text + '">' +
-                                            '<span class="dashicons dashicons-update"></span>' +
-                                        '</button>' +
-                                        '<button type="button" class="cg-edit-comment-btn" title="' + (cg_data.edit_comment_text || 'Edit this comment') + '">' +
-                                            '<span class="dashicons dashicons-edit"></span>' +
+                                            '<span class="dashicons dashicons-update"></span> Yenile' +
                                         '</button>' +
                                     '</div>' +
                                 '</div>' +
