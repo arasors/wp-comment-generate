@@ -204,7 +204,29 @@ class Comment_Generator {
         $comments = $gemini_api->generate_comments($product);
         
         if (is_wp_error($comments)) {
-            wp_send_json_error(array('message' => $comments->get_error_message()));
+            $error_message = $comments->get_error_message();
+            $debug_data = $comments->get_error_data();
+            
+            // If we have debug data, include it in the response
+            if (!empty($debug_data) && isset($debug_data['raw_response'])) {
+                $raw_response = $debug_data['raw_response'];
+                // Limit the length of the raw response if it's too long
+                if (strlen($raw_response) > 5000) {
+                    $raw_response = substr($raw_response, 0, 5000) . '... [truncated]';
+                }
+                
+                wp_send_json_error(array(
+                    'message' => $error_message,
+                    'debug_info' => array(
+                        'raw_response' => $raw_response,
+                        'product_name' => isset($debug_data['product_name']) ? $debug_data['product_name'] : '',
+                        'min_rating' => isset($debug_data['min_rating']) ? $debug_data['min_rating'] : 4,
+                        'max_rating' => isset($debug_data['max_rating']) ? $debug_data['max_rating'] : 5
+                    )
+                ));
+            } else {
+                wp_send_json_error(array('message' => $error_message));
+            }
         }
         
         wp_send_json_success(array('comments' => $comments));

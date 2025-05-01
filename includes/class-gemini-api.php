@@ -203,12 +203,22 @@ class CG_Gemini_API {
             }
         }
         
-        // If all parsing attempts failed, create a more generic error
+        // If all parsing attempts failed, create a more generic error with debug info
         if (empty($comments)) {
-            return new WP_Error(
+            $error = new WP_Error(
                 'parsing_error',
                 __('Could not parse comments from the AI response. Please try regenerating with a clearer prompt.', 'comment-generator')
             );
+            
+            // Add the raw API response as debug data
+            $error->add_data(array(
+                'raw_response' => $response,
+                'product_name' => $product_name,
+                'min_rating' => $min_rating,
+                'max_rating' => $max_rating
+            ));
+            
+            return $error;
         }
         
         // Make sure we have between 5-8 comments

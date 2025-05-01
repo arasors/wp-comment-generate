@@ -131,7 +131,11 @@
                     if (response.success) {
                         renderComments(response.data.comments);
                     } else {
-                        showError(response.data.message);
+                        if (response.data && response.data.debug_info) {
+                            showErrorWithDebug(response.data.message, response.data.debug_info);
+                        } else {
+                            showError(response.data.message);
+                        }
                     }
                 },
                 error: function() {
@@ -278,6 +282,33 @@
             };
             
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Helper function to show error message with debug info
+        function showErrorWithDebug(message, debugInfo) {
+            var debugHtml = '';
+            
+            if (debugInfo && debugInfo.raw_response) {
+                debugHtml = '<div class="cg-debug-info">' +
+                    '<h4>' + 'Debug Information:' + '</h4>' +
+                    '<div class="cg-debug-params">' +
+                    '<strong>Product Name:</strong> ' + escapeHtml(debugInfo.product_name) + '<br>' +
+                    '<strong>Rating Range:</strong> ' + debugInfo.min_rating + '-' + debugInfo.max_rating + '<br>' +
+                    '</div>' +
+                    '<div class="cg-raw-response">' +
+                    '<strong>Raw API Response:</strong>' +
+                    '<textarea readonly rows="10" class="large-text code">' + escapeHtml(debugInfo.raw_response) + '</textarea>' +
+                    '</div>' +
+                    '<p class="description">' + 'This information can help debug why the parsing failed. Check if the API response contains properly formatted reviews.' + '</p>' +
+                    '</div>';
+            }
+            
+            $('.cg-comments-list').prepend(
+                '<div class="notice notice-error inline">' +
+                '<p>' + message + '</p>' +
+                '</div>' +
+                debugHtml
+            );
         }
     });
     
