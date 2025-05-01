@@ -48,18 +48,18 @@ class CG_Gemini_API {
         // Build a JSON-friendly prompt
         $json_prompt = sprintf(
             "Ürün adı: \"%s\". Ürün açıklaması: \"%s\". " .
-            "5 ile 8 arası yorum üretin. " .
+            "5 adet yorum üretin. " .
             "Yorumlar %s dilinde yazılmalıdır." .
             "Yanıt MUST valid JSON format ONLY, with this structure: { \"reviews\": [ { \"name\": \"Customer Name\", \"rating\": 5, \"comment\": \"Review text here\" }, ... ] }. " .
             "Gerçek müşteri isimleri, %s diline uygun olarak sağlanmalıdır. " .
             "Yanıt JSON yapısı dışında herhangi bir metin içermemelidir. " .
+            "TÜM YORUMLAR KESINLIKLE SADECE %s DILINDE OLMALIDIR. " .
             "Yorumlar gerçekçi ve stil ve uzunluk açısından değişken olmalıdır.",
             $product_name,
             $product_description,
-            $min_rating,
-            $max_rating,
             $language_name,
-            $language_name
+            $language_name,
+            strtoupper($language_name)
         );
         
         // Additional prompt from the request
@@ -319,13 +319,8 @@ class CG_Gemini_API {
                 );
             }
             
-            $generic_comments = array(
-                "Great product! I'm very satisfied with my purchase.",
-                "This $product_name exceeded my expectations. Would buy again!",
-                "Excellent quality and fast shipping. Very happy customer.",
-                "I've been using this for a while now and it's holding up great.",
-                "Perfect for what I needed. Good value for money."
-            );
+            // Get language-specific generic comments
+            $generic_comments = $this->get_generic_comments_for_language($comment_language, $product_name);
             
             while (count($comments) < 5) {
                 $comments[] = array(
@@ -350,5 +345,58 @@ class CG_Gemini_API {
         $comments = array_slice($comments, 0, 8);
         
         return $comments;
+    }
+    
+    /**
+     * Get generic comments for the specified language
+     *
+     * @param string $language_code The language code (e.g., 'en', 'tr')
+     * @param string $product_name The product name to include in some comments
+     * @return array Array of generic comments in the specified language
+     */
+    public function get_generic_comments_for_language($language_code, $product_name) {
+        switch ($language_code) {
+            case 'tr':
+                return array(
+                    "Harika bir ürün! Satın aldığım için çok memnunum.",
+                    "Bu $product_name beklentilerimi aştı. Tekrar alırdım!",
+                    "Mükemmel kalite ve hızlı kargo. Çok memnun bir müşteriyim.",
+                    "Bunu bir süredir kullanıyorum ve hala çok iyi durumda.",
+                    "İhtiyacım olan şey tam olarak buydu. Fiyatına göre iyi bir değer."
+                );
+            case 'es':
+                return array(
+                    "¡Excelente producto! Estoy muy satisfecho con mi compra.",
+                    "Este $product_name superó mis expectativas. ¡Lo compraría de nuevo!",
+                    "Excelente calidad y envío rápido. Cliente muy satisfecho.",
+                    "He estado usando esto por un tiempo y sigue en excelente estado.",
+                    "Perfecto para lo que necesitaba. Buena relación calidad-precio."
+                );
+            case 'fr':
+                return array(
+                    "Excellent produit ! Je suis très satisfait de mon achat.",
+                    "Ce $product_name a dépassé mes attentes. J'achèterais à nouveau !",
+                    "Excellente qualité et livraison rapide. Client très satisfait.",
+                    "Je l'utilise depuis un certain temps et il tient toujours très bien.",
+                    "Parfait pour ce dont j'avais besoin. Bon rapport qualité-prix."
+                );
+            case 'de':
+                return array(
+                    "Tolles Produkt! Ich bin mit meinem Kauf sehr zufrieden.",
+                    "Dieses $product_name hat meine Erwartungen übertroffen. Würde es wieder kaufen!",
+                    "Ausgezeichnete Qualität und schneller Versand. Sehr zufriedener Kunde.",
+                    "Ich benutze es schon eine Weile und es hält immer noch großartig.",
+                    "Perfekt für das, was ich brauchte. Gutes Preis-Leistungs-Verhältnis."
+                );
+            // Default to English
+            default:
+                return array(
+                    "Great product! I'm very satisfied with my purchase.",
+                    "This $product_name exceeded my expectations. Would buy again!",
+                    "Excellent quality and fast shipping. Very happy customer.",
+                    "I've been using this for a while now and it's holding up great.",
+                    "Perfect for what I needed. Good value for money."
+                );
+        }
     }
 } 

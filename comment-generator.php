@@ -62,6 +62,7 @@ class Comment_Generator {
         // Ajax handlers
         add_action('wp_ajax_cg_generate_comments', array($this, 'ajax_generate_comments'));
         add_action('wp_ajax_cg_save_comments', array($this, 'ajax_save_comments'));
+        add_action('wp_ajax_cg_regenerate_single_comment', array($this, 'ajax_regenerate_single_comment'));
     }
     
     public function woocommerce_not_active_notice() {
@@ -165,7 +166,8 @@ class Comment_Generator {
             'saving_text' => __('Saving comments...', 'comment-generator'),
             'model_id_placeholder' => __('Model ID', 'comment-generator'),
             'model_name_placeholder' => __('Display Name', 'comment-generator'),
-            'remove_text' => __('Remove', 'comment-generator')
+            'remove_text' => __('Remove', 'comment-generator'),
+            'regenerate_comment_text' => __('Regenerate this comment', 'comment-generator')
         ));
     }
     
@@ -260,6 +262,158 @@ class Comment_Generator {
         }
         
         wp_send_json_success(array('message' => sprintf(__('%d comments saved successfully.', 'comment-generator'), count($comments))));
+    }
+    
+    public function ajax_regenerate_single_comment() {
+        check_ajax_referer('cg_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'comment-generator')));
+        }
+        
+        $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+        
+        if (!$product_id) {
+            wp_send_json_error(array('message' => __('Invalid product ID.', 'comment-generator')));
+        }
+        
+        $api_key = get_option('cg_gemini_api_key');
+        
+        if (empty($api_key)) {
+            wp_send_json_error(array('message' => __('Gemini API key is not set.', 'comment-generator')));
+        }
+        
+        require_once CG_PLUGIN_DIR . 'includes/class-gemini-api.php';
+        $gemini_api = new CG_Gemini_API($api_key);
+        
+        $product = wc_get_product($product_id);
+        
+        if (!$product) {
+            wp_send_json_error(array('message' => __('Product not found.', 'comment-generator')));
+        }
+        
+        // Additional prompt for the current product
+        $additional_prompt = isset($_POST['additional_prompt']) ? sanitize_textarea_field($_POST['additional_prompt']) : '';
+        
+        // Get language setting
+        $comment_language = get_option('cg_comment_language', 'en');
+        $languages = array(
+            'en' => 'English',
+            'es' => 'Spanish',
+            'fr' => 'French',
+            'de' => 'German',
+            'it' => 'Italian',
+            'pt' => 'Portuguese',
+            'ru' => 'Russian',
+            'zh' => 'Chinese',
+            'ja' => 'Japanese',
+            'ko' => 'Korean',
+            'tr' => 'Turkish',
+            'ar' => 'Arabic',
+        );
+        
+        $language_name = isset($languages[$comment_language]) ? $languages[$comment_language] : 'English';
+        
+        // Get min/max rating settings
+        $min_rating = get_option('cg_min_rating', 4);
+        $max_rating = get_option('cg_max_rating', 5);
+        
+        // Generate a single comment using the Gemini API
+        $product_name = $product->get_name();
+        $product_description = $product->get_description() ?: $product->get_short_description();
+        
+        $prompt = sprintf(
+            "Generate ONE review for this product: \"%s\". Product description: \"%s\". " .
+            "The rating should be between %d and %d stars. " .
+            "The review MUST be in %s language only. " .
+            "Response MUST be in valid JSON format with this structure: { \"review\": { \"name\": \"Customer Name\", \"rating\": 5, \"comment\": \"Review text here\" } }. " .
+            "Provide a realistic customer name appropriate to the %s language. " .
+            "The review should sound authentic with natural language.",
+            $product_name,
+            $product_description,
+            $min_rating,
+            $max_rating,
+            $language_name,
+            $language_name
+        );
+        
+        if (!empty($additional_prompt)) {
+            $prompt .= " Additional context: " . $additional_prompt;
+        }
+        
+        // Make the API request
+        $response = $gemini_api->make_api_request($prompt);
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error(array('message' => $response->get_error_message()));
+        }
+        
+        // Try to parse JSON
+        $json_pattern = '/(\{.*\})/s';
+        if (preg_match($json_pattern, $response, $matches)) {
+            $json_string = $matches[0];
+        } else {
+            $json_string = $response;
+        }
+        
+        $data = json_decode($json_string, true);
+        
+        if (json_last_error() === JSON_ERROR_NONE && isset($data['review']) && 
+            isset($data['review']['name']) && isset($data['review']['rating']) && isset($data['review']['comment'])) {
+            
+            $review = $data['review'];
+            
+            // Ensure rating is within min-max range
+            $rating = intval($review['rating']);
+            $rating = min(5, max(1, $rating));
+            
+            if ($rating < $min_rating) {
+                $rating = $min_rating;
+            } elseif ($rating > $max_rating) {
+                $rating = $max_rating;
+            }
+            
+            $comment = array(
+                'name' => $review['name'],
+                'rating' => $rating,
+                'comment' => $review['comment'],
+                'selected' => true
+            );
+            
+            wp_send_json_success(array('comment' => $comment));
+        } else {
+            // If JSON parsing failed, try to generate a generic comment
+            $default_names_setting = get_option('cg_default_names', '');
+            
+            if (!empty($default_names_setting)) {
+                $names_array = explode("\n", $default_names_setting);
+                $names_array = array_map('trim', $names_array);
+                $names_array = array_filter($names_array);
+            } else {
+                $names_array = array(
+                    'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emily Davis', 
+                    'David Wilson', 'Jennifer Martinez', 'Robert Taylor', 'Lisa Anderson'
+                );
+            }
+            
+            $name = $names_array[array_rand($names_array)];
+            $rating = rand($min_rating, $max_rating);
+            
+            // Get a generic comment in the right language
+            require_once CG_PLUGIN_DIR . 'includes/class-gemini-api.php';
+            $api = new CG_Gemini_API($api_key);
+            $generic_comments = $api->get_generic_comments_for_language($comment_language, $product_name);
+            $comment_text = $generic_comments[array_rand($generic_comments)];
+            
+            $comment = array(
+                'name' => $name,
+                'rating' => $rating,
+                'comment' => $comment_text,
+                'selected' => true
+            );
+            
+            wp_send_json_success(array('comment' => $comment));
+        }
     }
 }
 

@@ -288,6 +288,7 @@
 }
 
 .cg-comment-item {
+    position: relative;
     padding: 15px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -384,6 +385,57 @@
 .cg-regenerate-btn .dashicons,
 .cg-save-btn .dashicons {
     margin-right: 5px;
+}
+
+/* Comment Item Actions */
+.cg-comment-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.cg-regenerate-comment-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #f8f8f8;
+    color: #555;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cg-regenerate-comment-btn:hover {
+    background-color: #e9e9e9;
+    color: #2271b1;
+}
+
+.cg-regenerate-comment-btn .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.cg-comment-item.regenerating {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.cg-comment-item.regenerating::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7) url('../images/spinner.gif') no-repeat center center;
+    background-size: 24px 24px;
+    z-index: 2;
 }
 
 /* Responsive Adjustments */

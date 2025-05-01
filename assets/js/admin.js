@@ -100,6 +100,47 @@
             saveComments();
         });
         
+        // Handle single comment regeneration
+        $(document).on('click', '.cg-regenerate-comment-btn', function() {
+            var $commentItem = $(this).closest('.cg-comment-item');
+            var commentIndex = $commentItem.data('index');
+            
+            // Add regenerating class for visual feedback
+            $commentItem.addClass('regenerating');
+            
+            // Get additional prompt if any
+            var additionalPrompt = $('#cg-custom-prompt').val();
+            
+            // AJAX call to regenerate a single comment
+            $.ajax({
+                url: cg_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'cg_regenerate_single_comment',
+                    nonce: cg_data.nonce,
+                    product_id: currentProductId,
+                    additional_prompt: additionalPrompt
+                },
+                success: function(response) {
+                    // Remove regenerating class
+                    $commentItem.removeClass('regenerating');
+                    
+                    if (response.success) {
+                        // Replace the comment with the new one
+                        replaceComment($commentItem, response.data.comment, commentIndex);
+                    } else {
+                        showError(response.data.message);
+                    }
+                },
+                error: function() {
+                    // Remove regenerating class
+                    $commentItem.removeClass('regenerating');
+                    
+                    showError('An error occurred while connecting to the server.');
+                }
+            });
+        });
+        
         // Generate comments function
         function generateComments() {
             if (!currentProductId) {
@@ -245,7 +286,12 @@
                 }
                 
                 var $commentItem = $(
-                    '<div class="cg-comment-item" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
+                    '<div class="cg-comment-item" data-index="' + index + '" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
+                        '<div class="cg-comment-actions">' +
+                            '<button type="button" class="cg-regenerate-comment-btn" title="' + cg_data.regenerate_comment_text + '">' +
+                                '<span class="dashicons dashicons-update"></span>' +
+                            '</button>' +
+                        '</div>' +
                         '<div class="cg-comment-header">' +
                             '<div class="cg-comment-author">' + escapeHtml(comment.name) + '</div>' +
                             '<div class="cg-comment-rating">' + stars + '</div>' +
@@ -262,6 +308,38 @@
             });
         }
         
+        // Replace a single comment with a new one
+        function replaceComment($commentItem, comment, index) {
+            var stars = '';
+            for (var i = 1; i <= 5; i++) {
+                if (i <= comment.rating) {
+                    stars += '<span class="cg-star dashicons dashicons-star-filled"></span>';
+                } else {
+                    stars += '<span class="cg-star dashicons dashicons-star-empty"></span>';
+                }
+            }
+            
+            // Update data attributes
+            $commentItem.data('name', comment.name);
+            $commentItem.data('rating', comment.rating);
+            $commentItem.data('comment', comment.comment);
+            $commentItem.attr('data-name', comment.name);
+            $commentItem.attr('data-rating', comment.rating);
+            $commentItem.attr('data-comment', comment.comment);
+            
+            // Update DOM content
+            $commentItem.find('.cg-comment-author').text(comment.name);
+            $commentItem.find('.cg-comment-rating').html(stars);
+            $commentItem.find('.cg-comment-text').text(comment.comment);
+            
+            // Flash effect to highlight the change
+            $commentItem.css('background-color', '#f7fcff');
+            setTimeout(function() {
+                $commentItem.css('transition', 'background-color 1s ease');
+                $commentItem.css('background-color', '');
+            }, 50);
+        }
+        
         // Helper function to show error message
         function showError(message) {
             $('.cg-comments-list').prepend(
@@ -269,19 +347,6 @@
                 message + 
                 '</p></div>'
             );
-        }
-        
-        // Helper function to escape HTML
-        function escapeHtml(text) {
-            var map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            
-            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
         
         // Helper function to show error message with debug info
@@ -309,6 +374,19 @@
                 '</div>' +
                 debugHtml
             );
+        }
+        
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
     });
     
