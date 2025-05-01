@@ -167,10 +167,10 @@ class Comment_Generator {
         }
         
         // Rastgele bir değer ekleyerek önbelleği temizle
-        $cache_buster = '&ver=' . CG_VERSION . '.' . mt_rand(10, 99);
+        $cache_buster = CG_VERSION . '.' . mt_rand(10, 99);
         
-        wp_enqueue_style('cg-admin-css', CG_PLUGIN_URL . 'assets/css/admin.css' . $cache_buster, array(), null);
-        wp_enqueue_script('cg-admin-js', CG_PLUGIN_URL . 'assets/js/admin.js' . $cache_buster, array('jquery'), null, true);
+        wp_enqueue_style('cg-admin-css', CG_PLUGIN_URL . 'assets/css/admin.css', array(), $cache_buster);
+        wp_enqueue_script('cg-admin-js', CG_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), $cache_buster, true);
         
         wp_localize_script('cg-admin-js', 'cg_data', array(
             'ajax_url' => admin_url('admin-ajax.php'),

@@ -468,6 +468,7 @@
         
         // Function to add a comment to the list
         function addCommentToList(comment, productId) {
+            var index = $('.cg-comment-item').length;
             var stars = '';
             for (var i = 1; i <= 5; i++) {
                 if (i <= comment.rating) {
@@ -477,10 +478,10 @@
                 }
             }
             
-            var commentHtml = '<div class="cg-comment-item" data-index="' + $('.cg-comment-item').length + '" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
+            var commentHtml = '<div class="cg-comment-item" data-index="' + index + '" data-name="' + escapeHtml(comment.name) + '" data-rating="' + comment.rating + '" data-comment="' + escapeHtml(comment.comment) + '">' +
                             '<div class="cg-comment-select">' +
-                                '<input type="checkbox" class="cg-comment-checkbox" ' + (comment.selected ? 'checked' : '') + ' id="comment-' + $('.cg-comment-item').length + '">' +
-                                '<label for="comment-' + $('.cg-comment-item').length + '">Seç</label>' +
+                                '<input type="checkbox" class="cg-comment-checkbox" ' + (comment.selected ? 'checked' : '') + ' id="comment-' + index + '">' +
+                                '<label for="comment-' + index + '">Seç</label>' +
                                 '<button type="button" class="cg-edit-comment-btn" title="' + (cg_data.edit_comment_text || 'Yorumu Düzenle') + '">' +
                                     '<span class="dashicons dashicons-edit"></span> Düzenle' +
                                 '</button>' +
@@ -507,18 +508,18 @@
                                 '</div>' +
                                 '<div class="cg-comment-edit-body">' +
                                     '<div class="cg-edit-field">' +
-                                        '<label for="edit-name-' + $('.cg-comment-item').length + '">İsim:</label>' +
-                                        '<input type="text" id="edit-name-' + $('.cg-comment-item').length + '" class="cg-edit-author" value="' + escapeHtml(comment.name) + '">' +
+                                        '<label for="edit-name-' + index + '">İsim:</label>' +
+                                        '<input type="text" id="edit-name-' + index + '" class="cg-edit-author" value="' + escapeHtml(comment.name) + '">' +
                                     '</div>' +
                                     '<div class="cg-edit-field">' +
-                                        '<label for="edit-rating-' + $('.cg-comment-item').length + '">Puanlama:</label>' +
-                                        '<div class="cg-edit-rating" id="edit-rating-' + $('.cg-comment-item').length + '">' +
+                                        '<label for="edit-rating-' + index + '">Puanlama:</label>' +
+                                        '<div class="cg-edit-rating" id="edit-rating-' + index + '">' +
                                             generateEditableStars(comment.rating) +
                                         '</div>' +
                                     '</div>' +
                                     '<div class="cg-edit-field">' +
-                                        '<label for="edit-comment-' + $('.cg-comment-item').length + '">Yorum:</label>' +
-                                        '<textarea id="edit-comment-' + $('.cg-comment-item').length + '" class="cg-edit-comment">' + escapeHtml(comment.comment) + '</textarea>' +
+                                        '<label for="edit-comment-' + index + '">Yorum:</label>' +
+                                        '<textarea id="edit-comment-' + index + '" class="cg-edit-comment">' + escapeHtml(comment.comment) + '</textarea>' +
                                     '</div>' +
                                     '<div class="cg-edit-actions">' +
                                         '<button type="button" class="button button-primary cg-save-edit-btn">Değişiklikleri Kaydet</button>' +
